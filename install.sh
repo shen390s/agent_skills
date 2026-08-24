@@ -6,6 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_SRC="${SCRIPT_DIR}/skills"
+VERSION="0.1.0"
 
 PROJECT_DIR=""
 FORCE=0
@@ -60,11 +61,12 @@ usage() {
 Install Agent Skills from skills/ into Crush, Claude Code, and/or Kiro.
 
 Examples:
-  ./install.sh                          # all skills -> Crush (global)
+  ./install.sh                          # show this help (no action)
+  ./install.sh crush                    # all skills -> Crush (global)
   ./install.sh all                      # all skills -> all tools
   ./install.sh --skill cli-ux           # one skill -> Crush
   ./install.sh claude --skill cli-ux    # one skill -> Claude Code
-  ./install.sh --project=. all          # all skills -> this project
+  ./install.sh --project=. all          # all skills -> all tools (this project)
   ./install.sh -f --tool kiro --skill cli-ux
   ./install.sh --list                   # list available skills
 
@@ -84,6 +86,7 @@ Options:
       --no-color    Disable colored output
   -n, --dry-run     Show what would be done without doing it
   -l, --list        List available skills and exit
+  -V, --version     Show version and exit
   -h, --help        Show this help
 
 Global roots honor CRUSH_SKILLS_DIR, CLAUDE_CONFIG_DIR, and KIRO_HOME when set.
@@ -113,6 +116,11 @@ unique() {
 
 discover_skills
 
+if [[ $# -eq 0 ]]; then
+  usage
+  exit 0
+fi
+
 # --- argument parsing -------------------------------------------------------
 
 while [[ $# -gt 0 ]]; do
@@ -127,7 +135,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --tool)
-      [[ -n "${2:-}" ]] || fail "--tool needs a value"
+      [[ -n "${2:-}" ]] || fail "--tool needs a value (see --help)"
       TOOLS+=("$2")
       shift 2
       ;;
@@ -136,7 +144,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --skill)
-      [[ -n "${2:-}" ]] || fail "--skill needs a value"
+      [[ -n "${2:-}" ]] || fail "--skill needs a value (see --help)"
       SKILLS+=("$2")
       shift 2
       ;;
@@ -158,6 +166,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     -l|--list)
       list_skills
+      exit 0
+      ;;
+    -V|--version)
+      echo "install.sh ${VERSION}"
       exit 0
       ;;
     -h|--help|help)

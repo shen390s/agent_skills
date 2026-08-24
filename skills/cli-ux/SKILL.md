@@ -1,11 +1,11 @@
 ---
 name: cli-ux
-description: Use when designing, building, or reviewing the user experience of a command-line tool or terminal UI — naming commands and subcommands, help text, flags and arguments, output formatting, errors, prompts, colors, spinners, tables, configuration, and overall interaction design. Apply when creating a new CLI, adding commands, or judging whether a CLI is usable, scriptable, and consistent.
+description: Use when designing, building, or reviewing the user experience of a command-line tool or terminal UI — one-shot CLIs and full-screen TUIs (dashboards, pickers, REPLs). Covers naming commands and subcommands, help text, flags and arguments, output streams and formatting, errors, prompts, colors, spinners, tables, terminal lifecycle, accessibility, configuration, and overall interaction design. Apply when creating a new CLI/TUI, adding commands, or judging whether a terminal interface is usable, scriptable, and consistent.
 ---
 
 # CLI / TUI UX Design
 
-Synthesized from three canonical sources:
+Grounded in three canonical sources:
 
 - **Command Line Interface Guidelines** (cli-guidelines.github.io) — the philosophical
   and practical foundation ("human-first design", "saying just enough").
@@ -14,9 +14,12 @@ Synthesized from three canonical sources:
 - **12 Factor CLI Apps** by Jeff Dickey (jdx.dev/posts/2018-10-08-12-factor-cli-apps/) — the
   12 factors distilled to a checklist.
 
+Extended with full-screen TUI, accessibility, and visual-polish guidance from additional
+references (see Sources).
+
 Use this skill to make decisions and produce concrete designs (help text, flag sets,
-table layouts, error messages, prompts). When in doubt, prefer the CLI Guidelines
-document as the authority; the other two sharpen specific areas.
+tables, layouts, error messages, prompts). When in doubt, prefer the CLI Guidelines
+document as the authority; the others sharpen specific areas.
 
 ---
 
@@ -36,6 +39,22 @@ These are the "why" behind every concrete rule below.
 5. **Discoverable.** Help text, examples, and "what to do next" suggestions turn a
    CLI from a thing you must memorize into a thing you can learn.
 6. **Empathy & robustness.** Make it feel solid and immediate; anticipate misuse.
+
+---
+
+## Product shapes
+
+Classify the product before choosing flags, layout, or a framework:
+
+| Shape | Default contract |
+| --- | --- |
+| **One-shot CLI** | No full-screen UI. Stable stdout for results, stderr for diagnostics, meaningful exit codes. (Most of this skill.) |
+| **Summon–choose–exit tool** | Prefer inline when shell context matters; put interactive chrome on stderr or `/dev/tty`, the selected result on stdout. Full-screen only when a large preview needs stable space. |
+| **Full-screen session** | Use the alternate screen and a stable spatial model. Terminal restoration, resize, suspend, and redraw are product requirements, not afterthoughts. |
+
+Then name the workflow shape (panels, Miller columns, drill-down, dashboard, panes,
+overlay, tabs) and sketch states — initial, loading, empty, partial, success, error,
+disconnected, too-small — before writing code.
 
 ---
 
@@ -90,10 +109,16 @@ Rules for help output:
   (`jq` is the canonical example.)
 - **Lead with examples.** Users reach for examples before prose; show real output too.
   Move exhaustive examples to a cheat-sheet command or web page.
-- **Keep example annotations truthful.** Every example's comment must match its real
-  behavior, including defaults. A default that applies only when an argument is omitted
-  must not be claimed in an example that supplies that argument (e.g. `cmd claude` is
-  Claude-only, not "Crush + Claude").
+- **Keep example annotations truthful and complete.** Every example's comment must match
+  its real behavior, including defaults. A default that applies only when an argument is
+  omitted must not be claimed in an example that supplies that argument (e.g. `cmd claude`
+  is Claude-only, not "Crush + Claude"). Spell out what a keyword expands to and annotate
+  every dimension: `cmd --project=. all` is "all skills -> all tools -> this project",
+  not just "all skills -> this project".
+- **Sweep examples when the interface changes.** A flag rename, new/removed flag, or
+  changed syntax must be updated in every example (help, README, docs) at the same time.
+  A stale example that no longer parses (e.g. a removed `--flag VALUE` form) is worse than
+  no example.
 - **Most common flags/commands first** (like `git`'s grouped "common commands").
 - **Enumerate managed entities.** If the tool manages named resources (skills, plugins,
   apps, configs), list them in help and provide a `--list`-style command so users never
@@ -105,6 +130,8 @@ Rules for help output:
   but don't silently run the corrected command. State-changing assumptions are dangerous.
 - If the command expects **stdin from a pipe but stdin is a TTY**, show help (or a
   stderr message) and exit instead of hanging like `cat`.
+
+---
 
 ## Documentation
 
@@ -165,8 +192,8 @@ optional `=value`).
   concept and apply it consistently.
 - **Order-independent** args/flags/subcommands where possible — users append flags to
   the previous command via up-arrow.
-- **Never read secrets from flags or env vars.** Use `--password-file`, stdin, or a
-  credentials file/pipe/socket. Flags leak via `ps` and history; env vars leak into logs.
+- **Never read secrets from flags.** Use `--password-file` or stdin instead. Flag values
+  leak via `ps` and shell history. (Env vars are likewise insecure — see Configuration.)
 
 ---
 
@@ -209,20 +236,39 @@ optional `=value`).
 
 - **Use color with intention**: highlight important text, red for errors, but sparingly.
   A couple of colors plus dim/bold is usually enough; yellow/red reserved for
-  errors/warnings.
+  errors/warnings. Cap the palette: ~3 semantic colors (success/error/info) + 1 accent;
+  grayscale does hierarchy. More than ~5 colors on one screen is "rainbow vomit".
+- **Stay readable in light themes.** Prefer semantic ANSI codes (31 red, 32 green) over
+  hardcoded dark-theme bright colors, and test both light and dark terminals.
+- **Degrade gracefully.** Step down truecolor → 256 → 16 → monochrome (via `COLORTERM`/
+  `TERM`) rather than emitting codes the terminal can't render.
 - **Disable color/fancy output when** any of:
   - stdout/stderr is **not a TTY** (check each stream separately),
   - `NO_COLOR` is set and non-empty,
   - `TERM=dumb`,
   - `--no-color` passed (also consider `MYAPP_NO_COLOR`),
   - (Heroku also honors `COLOR=false`).
+  Provide a `--color=always|auto|never` override so scripts can force color when piped.
 - **No animations/progress bars when stdout isn't a TTY** (avoid Christmas trees in CI).
+
+---
+
+## Accessibility
+
+- **Never use color alone.** Pair it with text, shape, position, or symbols; provide an
+  ASCII fallback when Unicode support is uncertain.
+- **Keep meaning in monochrome.** `NO_COLOR`/16-color must not erase the signal.
+- **Every action is keyboard-reachable.** Mouse may accelerate but must not gate.
+- **Offer a plain `--no-tui` (or equivalent) mode** for automation and accessibility, so
+  the tool still works when a full-screen UI is unavailable or unusable.
 
 ---
 
 ## Errors
 
-A good error message is documentation. Structure it:
+A good error message is documentation.
+
+### Structure
 
 ```
 Error: EPERM - Invalid permissions on myfile.out
@@ -236,6 +282,8 @@ https://github.com/you/myapp
 3. **Description** (optional)
 4. **How to fix it**
 5. **Reference URL**
+
+### Rules
 
 - **Rewrite errors for humans.** Catch expected errors and translate ("Can't write to
   file.txt. Run `chmod +w file.txt`.").
@@ -277,7 +325,9 @@ https://github.com/you/myapp
 - **Responsive > fast.** Print something in <100ms. Print before network requests so
   it never looks hung.
 - **Show progress** (spinner/progress bar) for long tasks; show ETA or animation so it
-  doesn't look stuck. Hide logs behind progress bars but surface them on error.
+  doesn't look stuck. Hide logs behind progress bars but surface them on error. Delay
+  spinners ~150ms (skip for sub-second work), cap redraws at ~60fps, and show ETA for
+  tasks longer than ~30s.
 - **Parallelize** where useful, but keep progress output un-interleaved; use a library
   (tqdm, schollz/progressbar, node-progress).
 - **Time out** network calls with sensible, configurable defaults.
@@ -285,6 +335,22 @@ https://github.com/you/myapp
 - **Crash-only** — avoid cleanup or defer it so the program can exit immediately.
 - **Performance target: 100–500ms** startup. `time mycli` to benchmark. Lazy-load only
   the invoked command.
+
+---
+
+## Terminal lifecycle (full-screen TUIs)
+
+- **Use the alternate screen** for full-screen sessions; keep bounded, one-shot
+  workflows inline.
+- **Prefer framework-managed cleanup.** Restore raw mode, screen buffer, cursor, and
+  input modes on every exit path (normal, error, panic, interrupt). Don't hand-roll
+  signal handling the framework already owns.
+- **Re-layout from the current size on resize.** Coalesce bursts only when layout work
+  is expensive.
+- **Suspend/resume is a boundary.** For an editor/shell handoff, use the framework's
+  suspend API: pause input, restore the terminal, wait, re-enter modes, reload changed
+  data, force a full redraw. Redrawing repaints the model; it doesn't refresh data.
+- **Keep logs off the TUI screen.** Use a file, framework console, or a separate stream.
 
 ---
 
@@ -345,9 +411,24 @@ Choose the mechanism by specificity/stability:
 
 ---
 
+## Review reflexes
+
+Apply these to every layout or review, even when the question is about something else.
+
+- **Clutter audit — make "busy" countable.** Count border-nesting depth (more than one
+  border between the edge and content is usually too much), how many signals encode the
+  same state (`[PASS]` + green + checkmark + row marker = four), markers repeated on
+  every row (which therefore mark nothing), and the share of cells spent on chrome vs
+  data. Name the exact elements to remove; don't stop at "simplify it".
+- **Pressure-test the floor.** State what happens at 80×24 and in a 60-column split:
+  which pane wins, what hides/truncates, what becomes drill-down, and when the honest
+  "too small" state appears. Every multi-column design needs a single-pane fallback.
+
+---
+
 ## Review checklist
 
-Before calling a CLI "done", verify:
+Before calling a CLI/TUI "done", verify:
 
 - [ ] `--help`, `-h`, `help`, and `subcommand --help` all work.
 - [ ] Bare invocation shows concise help (or lists subcommands) — never a surprise action.
@@ -359,6 +440,14 @@ Before calling a CLI "done", verify:
 - [ ] Errors follow code/title/description/fix/URL structure; rewritten for humans.
 - [ ] Progress shown for long tasks; <100ms first paint; 100–500ms startup.
 - [ ] Ctrl-C exits cleanly; config follows XDG spec; version + User-Agent present.
+- [ ] Full-screen: alternate screen used; terminal restored on every exit path.
+- [ ] Resize, too-small, and suspend/resume behave; single-pane fallback exists.
+- [ ] Every action keyboard-reachable; color never the only signal; ASCII/monochrome works.
+- [ ] `NO_COLOR`/16-color/non-TTY output correct; no blocking I/O in the render path.
+- [ ] Color degrades truecolor→256→16→monochrome; readable in light themes; `--color=always` works.
+- [ ] Readable at 40/80/120 columns; CJK/emoji don't break alignment or box drawing.
+
+---
 
 ## Sources
 
@@ -366,3 +455,7 @@ Before calling a CLI "done", verify:
 - https://devcenter.heroku.com/articles/cli-style-guide
 - https://jdx.dev/posts/2018-10-08-12-factor-cli-apps/ (mirror of
   https://jdxcode.medium.com/12-factor-cli-apps-dd3c227a0e46)
+- https://github.com/gfargo/tui-design-skill (full-screen TUI patterns, lifecycle,
+  accessibility, review reflexes)
+- https://github.com/curiositech/windags-skills (color degradation, anti-patterns,
+  progress indicators, quality gates)

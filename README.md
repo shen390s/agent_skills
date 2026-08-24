@@ -20,7 +20,8 @@ Agent Skills format, so the same skill works in Crush, Claude Code, and Kiro
 ## Installation
 
 The installer copies every skill from `skills/<name>/SKILL.md` into each tool's
-skills directory. By default it installs **all** skills to **Crush**.
+skills directory. Running it with no arguments shows help; give it a tool or
+skill to install (defaults: **all** skills to **Crush**).
 
 ### Nix (run straight from the repo)
 
@@ -37,7 +38,8 @@ installer.
 ### From a checkout
 
 ```bash
-./install.sh                       # all skills -> Crush (global)
+./install.sh                       # show help (no action)
+./install.sh crush                 # all skills -> Crush (global)
 ./install.sh all                   # all skills -> all tools
 ./install.sh --skill cli-ux        # one skill -> Crush
 ./install.sh claude --skill cli-ux # one skill -> Claude Code
@@ -67,8 +69,8 @@ Override the global root with the tool's env var: `CRUSH_SKILLS_DIR`,
 ### Project-local (one project only)
 
 ```bash
-./install.sh --project . all
-./install.sh --project /path/to/repo claude --skill cli-ux
+./install.sh --project=. all                                # all skills -> all tools (this project)
+./install.sh --project=/path/to/repo claude --skill cli-ux  # one skill -> Claude Code (this project)
 ```
 
 Project-local install locations:
@@ -82,13 +84,16 @@ Project-local install locations:
 ### Options
 
 ```text
-[skill ...]       Tools to install into (default: crush; "all" = all tools)
+[tool ...]        Tools to install into (default: crush; "all" = all tools)
 --tool NAME       Tool to install into (repeatable)
 --skill NAME      Skill to install, or "all" (repeatable; default: all skills)
---project [DIR]   Install project-locally into DIR (default: .)
+--project[=DIR]   Install project-locally (default: current dir)
 -f, --force       Overwrite existing installations without prompting
+--no-color        Disable colored output
 -n, --dry-run     Show what would be done without doing it
--h, --help        Show help
+-l, --list        List available skills and exit
+-V, --version     Show version and exit
+-h, --help        Show this help
 ```
 
 ## Usage
