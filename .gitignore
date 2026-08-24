@@ -1,0 +1,5 @@
+# Crush runtime state (contains a local database and may hold secrets)
+.crush/
+
+# Nix build outputs
+result
