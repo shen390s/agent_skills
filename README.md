@@ -25,9 +25,9 @@ skills directory. By default it installs **all** skills to **Crush**.
 ### Nix (run straight from the repo)
 
 ```bash
-nix run github:<owner>/<repo> -- --help       # view help
-nix run github:<owner>/<repo> -- all          # all skills -> all tools
-nix run github:<owner>/<repo> -- claude --skill cli-ux
+nix run github:shen390s/agent_skills -- --help       # view help
+nix run github:shen390s/agent_skills -- all          # all skills -> all tools
+nix run github:shen390s/agent_skills -- claude --skill cli-ux
 ```
 
 The flake wraps `install.sh` together with `skills/`, so the installer finds its
