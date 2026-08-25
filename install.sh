@@ -287,24 +287,23 @@ scope_label() {
 
 installed=0
 for skill in "${SELECTED[@]}"; do
-  src_file="${SKILLS_SRC}/${skill}/SKILL.md"
+  src_dir="${SKILLS_SRC}/${skill}"
   for tool in "${TOOLS[@]}"; do
     dir="$(tool_skills_root "$tool")/${skill}"
-    file="${dir}/SKILL.md"
 
     if [[ "$DRY_RUN" -eq 1 ]]; then
       action="install"
-      [[ -f "$file" ]] && action="overwrite"
+      [[ -d "$dir" ]] && action="overwrite"
       echo "$(dim "would ${action}") $(bold "$skill") -> $(tool_label "$tool") [$(scope_label)]:"
-      echo "  ${src_file} -> ${file}"
+      echo "  ${src_dir} -> ${dir}"
       continue
     fi
 
-    if [[ -f "$file" && "$FORCE" -eq 0 ]]; then
+    if [[ -d "$dir" && "$FORCE" -eq 0 ]]; then
       if [[ ! -t 0 ]]; then
-        fail "already installed at ${file}; re-run with -f to overwrite"
+        fail "already installed at ${dir}; re-run with -f to overwrite"
       fi
-      read -r -p "already installed at ${file}; overwrite? [y/N] " answer
+      read -r -p "already installed at ${dir}; overwrite? [y/N] " answer
       case "$answer" in
         [yY]|[yY][eE][sS]) ;;
         *) echo "$(dim 'skipped') ${skill} -> $(tool_label "$tool")"; continue ;;
@@ -312,9 +311,9 @@ for skill in "${SELECTED[@]}"; do
     fi
 
     mkdir -p "$dir"
-    cp "$src_file" "$file"
+    cp -r "${src_dir}/." "$dir"
     echo "$(green 'installed') $(bold "$skill") -> $(tool_label "$tool") [$(scope_label)]:"
-    echo "  ${file}"
+    echo "  ${dir}"
     installed=1
   done
 done
