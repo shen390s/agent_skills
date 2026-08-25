@@ -10,6 +10,8 @@ Agent Skills format, so the same skill works in Crush, Claude Code, and Kiro
 | Skill | Description |
 |-------|-------------|
 | [`cli-ux`](skills/cli-ux/SKILL.md) | Design and review CLI/TUI user experience (naming, help, flags, output, errors, prompts, colors, config). Synthesizes the [CLI Guidelines](https://cli-guidelines.github.io), the [Heroku CLI Style Guide](https://devcenter.heroku.com/articles/cli-style-guide), and Jeff Dickey's [12 Factor CLI Apps](https://jdx.dev/posts/2018-10-08-12-factor-cli-apps/). |
+| [`gitea-sync`](skills/gitea-sync/SKILL.md) | Mirror local specs, tasks, and bug logs into Gitea issues and milestones, treating local files as the source of truth with idempotent sync state. |
+| [`weekly-report`](skills/weekly-report/SKILL.md) | Generate a dated work-status report from repository evidence (git, specs, bugs, session notes), with continuity checks against prior reports. |
 
 ## Requirements
 
