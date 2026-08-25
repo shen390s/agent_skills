@@ -70,6 +70,9 @@ Resolve each value in order:
 2. A discovered project convention (look for the paths in the repo).
 3. **Prompt the user** — never guess and never proceed with a missing value.
 
+Once resolved, persist the values in the project's agent-memory file
+(`AGENTS.md` / `CLAUDE.md` / Crush context) so later sessions don't re-prompt.
+
 Each spec is a directory containing a manifest (e.g. `spec.json`) plus phase
 documents (e.g. `requirements.md`, `tasks.md`). The manifest holds the sync
 mapping (`gitea.milestone_id`, `gitea.issues.<phase>`) once synced.

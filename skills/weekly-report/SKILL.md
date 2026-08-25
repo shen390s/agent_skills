@@ -13,7 +13,8 @@ history, spec progress, bug log, session notes) and save it as
 
 Resolve these before the first run (environment variables or project conventions —
 adjust to your project). Prompt the user for any that are missing rather than
-guessing.
+guessing. Once resolved, persist the values in the project's agent-memory file
+(`AGENTS.md` / `CLAUDE.md` / Crush context) so later sessions don't re-prompt.
 
 | What | Env var | Example |
 | --- | --- | --- |

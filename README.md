@@ -48,7 +48,24 @@ installer.
 ```
 
 Select tools with positional args or `--tool`; select skills with `--skill`
-(both repeatable). `all` means "every tool" / "every skill in `skills/`".
+(both repeatable). `all` means "every tool" / "every skill known by the
+installer" — the bundled skills **plus** `cc-sdd` (an external npm tool).
+
+### cc-sdd (spec-driven development workflow)
+
+The installer also knows [cc-sdd](https://github.com/gotalab/cc-sdd), an
+external spec-driven SDLC workflow (discovery → requirements → design → tasks →
+autonomous implementation). It's installed via cc-sdd's own `npx` installer
+(requires Node.js), and is included in `all` / selectable as `--skill cc-sdd`:
+
+```bash
+./install.sh --cc-sdd                    # Claude Code skills (default)
+./install.sh --cc-sdd --codex-skills     # Codex
+./install.sh --cc-sdd --cursor-skills --lang ja   # any cc-sdd flags pass through
+```
+
+Everything after `--cc-sdd` is passed verbatim to `npx cc-sdd@latest`, so all of
+cc-sdd's own flags (`--*-skills`, `--lang`, `--dry-run`, `--kiro-dir`) work.
 
 ### Global (available in every project)
 

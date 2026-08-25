@@ -14,6 +14,7 @@ DRY_RUN=0
 COLOR=1
 TOOLS=()
 SKILLS=()
+EXTERNAL_SKILLS=(cc-sdd)
 
 # --- output helpers ---------------------------------------------------------
 
@@ -46,28 +47,31 @@ discover_skills() {
 }
 
 list_skills() {
-  if [[ ${#DISCOVERED[@]} -eq 0 ]]; then
-    echo "  (none)"
-    return
-  fi
   local name
   for name in "${DISCOVERED[@]}"; do
     echo "  ${name}"
   done
+  for name in "${EXTERNAL_SKILLS[@]}"; do
+    echo "  ${name} (external)"
+  done
+  if [[ ${#DISCOVERED[@]} -eq 0 && ${#EXTERNAL_SKILLS[@]} -eq 0 ]]; then
+    echo "  (none)"
+  fi
 }
 
 usage() {
   cat <<'EOF'
-Install Agent Skills from skills/ into Crush, Claude Code, and/or Kiro.
+Install Agent Skills into Crush, Claude Code, and Kiro, plus the external cc-sdd workflow.
 
 Examples:
   ./install.sh                          # show this help (no action)
   ./install.sh crush                    # all skills -> Crush (global)
-  ./install.sh all                      # all skills -> all tools
+  ./install.sh all                      # all skills -> all tools (+ cc-sdd)
   ./install.sh --skill cli-ux           # one skill -> Crush
   ./install.sh claude --skill cli-ux    # one skill -> Claude Code
   ./install.sh --project=. all          # all skills -> all tools (this project)
   ./install.sh -f --tool kiro --skill cli-ux
+  ./install.sh --skill cc-sdd           # just cc-sdd (external, via npx)
   ./install.sh --list                   # list available skills
 
 Usage:
@@ -77,6 +81,10 @@ Tools (default: crush; "all" = crush claude kiro):
   crush    Crush         (project .crush/skills   | global ~/.config/crush/skills)
   claude   Claude Code   (project .claude/skills  | global ~/.claude/skills)
   kiro     Kiro (AWS)    (project .kiro/skills    | global ~/.kiro/skills)
+
+"all" skills also installs cc-sdd (an external npm tool) via npx, independent of
+the tool selection above. For cc-sdd's own flags (e.g. --codex-skills), run
+`npx cc-sdd@latest` directly.
 
 Options:
   --skill NAME      Skill to install, or "all" (repeatable; default: all)
@@ -210,18 +218,20 @@ TOOLS=("${_tmp[@]}")
 
 # --- resolve skills ----------------------------------------------------------
 
-if [[ ${#DISCOVERED[@]} -eq 0 ]]; then
+KNOWN=("${DISCOVERED[@]}" "${EXTERNAL_SKILLS[@]}")
+
+if [[ ${#KNOWN[@]} -eq 0 ]]; then
   fail "no skills found (expected skills/<name>/SKILL.md under $SKILLS_SRC)"
 fi
 
 for name in "${SKILLS[@]}"; do
   [[ "$name" == "all" ]] && continue
-  array_contains "$name" "${DISCOVERED[@]}" \
-    || fail "unknown skill: $name (available: ${DISCOVERED[*]})"
+  array_contains "$name" "${KNOWN[@]}" \
+    || fail "unknown skill: $name (available: ${KNOWN[*]})"
 done
 
 if [[ ${#SKILLS[@]} -eq 0 ]] || array_contains "all" "${SKILLS[@]}"; then
-  SELECTED=("${DISCOVERED[@]}")
+  SELECTED=("${KNOWN[@]}")
 else
   SELECTED=("${SKILLS[@]}")
 fi
@@ -287,6 +297,21 @@ scope_label() {
 
 installed=0
 for skill in "${SELECTED[@]}"; do
+  if array_contains "$skill" "${EXTERNAL_SKILLS[@]}"; then
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      echo "$(dim 'would run') $(bold "npx ${skill}@latest") [$(scope_label)]"
+      continue
+    fi
+    if ! command -v npx >/dev/null 2>&1; then
+      fail "${skill} requires npx (Node.js); install Node, then re-run"
+    fi
+    echo "$(green 'installing') $(bold "$skill") (external) [$(scope_label)]:"
+    echo "  npx ${skill}@latest"
+    npx "${skill}@latest"
+    installed=1
+    continue
+  fi
+
   src_dir="${SKILLS_SRC}/${skill}"
   for tool in "${TOOLS[@]}"; do
     dir="$(tool_skills_root "$tool")/${skill}"
